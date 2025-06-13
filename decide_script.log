@@ -1,0 +1,17 @@
+-bash: @reboot: command not found
+/home/licenta/boot_scripts/decide_script.sh: line 16: cd: no_internet/: No such file or directory
+python: can't open file '/home/licenta/advertise_adress.py': [Errno 2] No such file or directory
+sudo: /home/licenta/boot_scripts/no_internet/python: command not found
+python: can't open file '/home/licenta/boot_scripts/no_internet/python': [Errno 2] No such file or directory
+/home/licenta/boot_scripts/decide_script.sh: line 18: cd: /home/licenta/no_internet: No such file or directory
+Directory not found: /home/licenta/no_internet
+Traceback (most recent call last):
+  File "/home/licenta/boot_scripts/no_internet/advertise_adress.py", line 135, in <module>
+    display_message()
+  File "/home/licenta/boot_scripts/no_internet/advertise_adress.py", line 61, in display_message
+    root = tk.Tk()
+           ^^^^^^^
+  File "/usr/lib/python3.11/tkinter/__init__.py", line 2326, in __init__
+    self.tk = _tkinter.create(screenName, baseName, className, interactive, wantobjects, useTk, sync, use)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_tkinter.TclError: no display name and no $DISPLAY environment variable
