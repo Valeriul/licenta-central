@@ -28,7 +28,7 @@ def start_hotspot():
     try:
         print("Starting HotSpot...")
         result = subprocess.run(
-            ["sudo", "nmcli", "connection", "up", "HotSpot"],
+            ["nmcli", "connection", "up", "HotSpot"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

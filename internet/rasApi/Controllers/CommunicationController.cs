@@ -12,6 +12,7 @@ namespace BackendAPI.Controllers
         [HttpPost("handle-command")]
         public async Task<IActionResult> HandleCommand([FromBody] CommandRequest commandRequest)
         {
+            
             if (commandRequest == null || string.IsNullOrWhiteSpace(commandRequest.CommandType))
             {
                 return BadRequest("Invalid request.");

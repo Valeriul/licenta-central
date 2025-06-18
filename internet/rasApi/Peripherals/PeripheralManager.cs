@@ -14,9 +14,8 @@ namespace RasberryAPI.Peripherals
         {
             return config.PeripheralType.ToLower() switch
             {
-                "temperaturehumiditysensor" => new TemperatureHumiditySensor(config.Uuid, config.Url),
-                "temperaturecontrol" => new TemperatureControl(config.Uuid, config.Url),
                 "led" => new LedControl(config.Uuid, config.Url),
+                "gassensor" => new GasSensor(config.Uuid, config.Url),
                 _ => null
             };
         }
@@ -209,12 +208,24 @@ namespace RasberryAPI.Peripherals
 
         public IEnumerable<string> GetAllData()
         {
-            var jsonO = _peripherals.Select(p => new
+            var jsonO = new List<object>();
+            foreach (var peripheral in _peripherals)
             {
-                uuid = p.UUId,
-                data = p.GetData()
-            });
-
+                object peripheralData;
+                try
+                {
+                    peripheralData = peripheral.GetData();
+                }
+                catch (Exception)
+                {
+                    continue; // Skip this peripheral if an error occurs
+                }
+                jsonO.Add(new
+                {
+                    uuid = peripheral.UUId,
+                    data = peripheralData
+                });
+            }
             return new List<string> { JsonConvert.SerializeObject(jsonO) };
         }
 

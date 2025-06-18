@@ -22,6 +22,9 @@ namespace RasberryAPI.Peripherals
         }
 
         public abstract string GetData();
-        public abstract void HandleRequest(string request);
+        public  void HandleRequest(string request)
+        {
+            throw new NotImplementedException("HandleRequest method is not implemented for Sensor class.");
+        }
     }
 }
