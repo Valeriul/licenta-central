@@ -12,12 +12,12 @@ using RasberryAPI.Services;
 
 namespace RasberryAPI.Peripherals
 {
-    public class GasSensor : Sensor
+    public class TemperatureSensor : Sensor
     {
         private static readonly Random random = new Random();
         public string State { get; set; }
 
-        public GasSensor(string uuid, string url) : base(uuid, url) {
+        public TemperatureSensor(string uuid, string url) : base(uuid, url) {
             BatteryLevel = random.Next(0, 100);
         }
 
@@ -33,20 +33,21 @@ namespace RasberryAPI.Peripherals
             try{
                 string sanitizedResponse = JsonConvert.DeserializeObject<string>(responseData) ?? string.Empty;
                 var responseObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(sanitizedResponse);
-                State = responseObject["gasValue"].ToString();
+                State = responseObject["temperatureC"].ToString();
             }
             catch (Exception e)
             {
                 return null;
             }
 
-            string insertQuery = "INSERT INTO gas_sensor_data (uuid, ppm) VALUES (@uuid, @ppm);";
+            string insertQuery = "INSERT INTO temperature_sensor_data (uuid, temperature) VALUES (@uuid, @temperature);";
             var parameters = new Dictionary<string, object>
             {
                 { "uuid", UUId },
-                { "ppm", State }
+                { "temperature", State }
             };
             MySqlDatabaseService.Instance.ExecuteQueryAsync(insertQuery, parameters);
+
 
             return responseData;
         }

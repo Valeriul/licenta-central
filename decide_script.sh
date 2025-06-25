@@ -6,7 +6,7 @@ export XAUTHORITY=/home/licenta/.Xauthority
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 
 # Wait for 10 seconds to ensure the display is up
-sleep 10
+sleep 30
 
 # Define the base directory (adjust if needed)
 BASE_DIR="/home/licenta/boot_scripts"

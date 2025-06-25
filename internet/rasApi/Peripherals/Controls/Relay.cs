@@ -13,12 +13,12 @@ using RasberryAPI.Services;
 
 namespace RasberryAPI.Peripherals
 {
-    public class LedControl : Control
+    public class Relay : Control
     {
         private static readonly Random random = new Random();
         public string State { get; set; }
 
-        public LedControl(string uuid, string url) : base(uuid, url)
+        public Relay(string uuid, string url) : base(uuid, url)
         {
             BatteryLevel = random.Next(0, 100);
         }
@@ -36,22 +36,20 @@ namespace RasberryAPI.Peripherals
             try{
                 string sanitizedResponse = JsonConvert.DeserializeObject<string>(responseData) ?? string.Empty;
                 var responseObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(sanitizedResponse);
-                State = responseObject["brightness"].ToString();
-
+                State = responseObject["isOn"].ToString();
             }
             catch (Exception e)
             {
                 return null;
             }
 
-            string insertQuery = "INSERT INTO led_brightness_data (uuid, brightness) VALUES (@uuid, @brightness);";
+            string insertQuery = "INSERT INTO relay_state_data (uuid, state) VALUES (@uuid, @state);";
             var parameters = new Dictionary<string, object>
             {
                 { "uuid", UUId },
-                { "brightness", State }
+                { "state", State == "False" ? 1 : 0 }
             };
-            MySqlDatabaseService.Instance.ExecuteQueryAsync(insertQuery, parameters);
-
+            MySqlDatabaseService.Instance.ExecuteQueryAsync(insertQuery, parameters); 
 
             return responseData;
         }
@@ -71,22 +69,20 @@ namespace RasberryAPI.Peripherals
             var response = client.PostAsync(endpoint, content).Result;
 
             State = response.Content.ReadAsStringAsync().Result;
+
         }
 
 
         public override void HandleRequest(string request)
         {
-            var ledRequest = Newtonsoft.Json.JsonConvert.DeserializeObject<LedRequest>(request);
+            var ledRequest = Newtonsoft.Json.JsonConvert.DeserializeObject<RelayRequest>(request);
             switch (ledRequest.type)
             {
-                case "SET_BRIGHTNESS":
-                    SetState(ledRequest.value);
+                case "SET_ON":
+                    SetState("HIGH");
                     break;
-                case "INCREASE_BRIGHTNESS":
-                    SetState((int.Parse(State) + 1).ToString());
-                    break;
-                case "DECREASE_BRIGHTNESS":
-                    SetState((int.Parse(State) - 1).ToString());
+                case "SET_OFF":
+                    SetState("LOW");
                     break;
                 default:
                     Console.WriteLine("Unknown request type.");
@@ -95,7 +91,7 @@ namespace RasberryAPI.Peripherals
         }
     }
 
-    public class LedRequest
+    public class RelayRequest
     {
         public string type { get; set; }
         public string value { get; set; }

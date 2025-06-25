@@ -15,9 +15,8 @@ namespace BackendAPI.Services
         public async Task<string?> HandleCommand(string request)
         {
             try
-            {
+            {   
                 CommandRequest commandRequest = JsonConvert.DeserializeObject<CommandRequest>(request);
-
                 if (request == null)
                 {
                     Console.WriteLine("Received null request.");
@@ -36,6 +35,9 @@ namespace BackendAPI.Services
                         return await Task.FromResult(JsonConvert.SerializeObject(sensorData));
                     case "CONTROL":
                         return await PeripheralManager.Instance.HandleRequest(commandRequest.Uuid, commandRequest.Data);
+                    case "GET_AGGREGATED_DATA":
+                        var aggregatedData = await PeripheralManager.Instance.GetAggregatedData(commandRequest.Uuid, commandRequest.Data);
+                        return aggregatedData;
                     default:
                         Console.WriteLine("Unknown command type.");
                         return null;

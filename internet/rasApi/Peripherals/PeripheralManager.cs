@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using Newtonsoft.Json;
 using RasberryAPI.Middlewares;
+using RasberryAPI.Services;
 
 namespace RasberryAPI.Peripherals
 {
@@ -16,6 +17,8 @@ namespace RasberryAPI.Peripherals
             {
                 "led" => new LedControl(config.Uuid, config.Url),
                 "gassensor" => new GasSensor(config.Uuid, config.Url),
+                "temperaturesensor" => new TemperatureSensor(config.Uuid, config.Url),
+                "relay" => new Relay(config.Uuid, config.Url),
                 _ => null
             };
         }
@@ -178,10 +181,11 @@ namespace RasberryAPI.Peripherals
 
                 foreach (var config in peripherals)
                 {
-                    if (!existingUuids.Contains(config.Uuid))
+                    if (existingUuids.Contains(config.Uuid))
                     {
-                        await Task.Run(() => AddPeripheral(config));
+                       await Task.Run(() => RemovePeripheral(config.Uuid));
                     }
+                    await Task.Run(() => AddPeripheral(config));
                 }
             }
             catch (Exception ex)
@@ -226,7 +230,102 @@ namespace RasberryAPI.Peripherals
                     data = peripheralData
                 });
             }
+
             return new List<string> { JsonConvert.SerializeObject(jsonO) };
+        }
+
+        public async Task<string> GetAggregatedData(string uuid, string requestData)
+        {
+            try
+            {
+                var request = JsonConvert.DeserializeObject<Dictionary<string, string>>(requestData);
+                
+                // Check if required keys exist
+                if (!request.ContainsKey("date_start") || !request.ContainsKey("date_end") || !request.ContainsKey("type"))
+                {
+                    return JsonConvert.SerializeObject(new { error = "Missing required parameters: date_start, date_end, or type" });
+                }
+
+                var date_start = request["date_start"];
+                var date_end = request["date_end"];
+                var type = request["type"];
+
+                DateTime startDate, endDate;
+                TimeSpan timeDifference;
+                
+                try
+                {
+                    startDate =  DateTime.Parse(date_start);
+                    endDate =  DateTime.Parse(date_end);
+                    timeDifference = endDate - startDate;
+                }
+                catch (Exception)
+                {
+                    return JsonConvert.SerializeObject(new { error = "Invalid date format. Use format: yyyy-MM-dd HH:mm:ss" });
+                }
+
+                // Check for negative time difference
+                if (timeDifference.TotalMilliseconds < 0)
+                {
+                    return JsonConvert.SerializeObject(new { error = "End date must be after start date" });
+                }
+
+                string aggregationLevel;
+                if (timeDifference.TotalHours < 3)
+                    aggregationLevel = "minute";
+                else if (timeDifference.TotalDays < 3)
+                    aggregationLevel = "hourly";
+                else
+                    aggregationLevel = "daily";
+
+                string tableName = type switch
+                {
+                    "LedControl" => "led_brightness_data",
+                    "GasSensor" => "gas_sensor_data",
+                    "TemperatureSensor" => "temperature_sensor_data",
+                    "Relay" => "relay_state_data",
+                    _ => null
+                };
+
+                if (tableName == null)
+                {
+                    return JsonConvert.SerializeObject(new { error = $"Invalid type: {type}. Valid types: LedControl, GasSensor, TemperatureSensor, Relay" });
+                }
+
+                var query = $"SELECT * FROM {tableName} WHERE uuid = @uuid AND timestamp >= @startDate AND timestamp <= @endDate AND aggregation_level = @aggregationLevel ORDER BY timestamp";
+                var parameters = new Dictionary<string, object>
+                {
+                    { "@uuid", uuid },
+                    { "@startDate", startDate.ToString("yyyy-MM-dd HH:mm:ss") },
+                    { "@endDate", endDate.ToString("yyyy-MM-dd HH:mm:ss") },
+                    { "@aggregationLevel", aggregationLevel }
+                };
+
+                var data = await MySqlDatabaseService.Instance.ExecuteQueryAsync(query, parameters);
+
+                if (data.Count == 0)
+                {
+                    return JsonConvert.SerializeObject(new { 
+                        message = $"No data found for UUID {uuid} between {date_start} and {date_end} at {aggregationLevel} level",
+                        data = new object[0]
+                    });
+                }
+
+                data.ForEach(d => d.Remove("aggregation_level"));
+                data.ForEach(d => d.Remove("uuid"));
+                data.ForEach(d => d.Remove("id"));
+                data.ForEach(d => d.Remove("aggregated"));
+                return JsonConvert.SerializeObject(data);
+            }
+            catch (JsonException)
+            {
+                return JsonConvert.SerializeObject(new { error = "Invalid JSON format in request data" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in GetAggregatedData: {ex.Message}");
+                return JsonConvert.SerializeObject(new { error = ex.Message });
+            }
         }
 
         public IEnumerable<string> GetAllSensorData()
