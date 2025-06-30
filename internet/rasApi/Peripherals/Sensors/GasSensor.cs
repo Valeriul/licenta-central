@@ -26,29 +26,31 @@ namespace RasberryAPI.Peripherals
             var endpoint = "http://" + Url + "/module/state?uuid=" + UUId;
 
             using HttpClient client = new HttpClient();
-            var response = client.GetAsync(endpoint).Result;
-            var responseData = response.Content.ReadAsStringAsync().Result;
+            client.Timeout = TimeSpan.FromSeconds(2);
+            
+            try
+            {
+                var response = client.GetAsync(endpoint).Result;
+                var responseData = response.Content.ReadAsStringAsync().Result;
 
-
-            try{
                 string sanitizedResponse = JsonConvert.DeserializeObject<string>(responseData) ?? string.Empty;
                 var responseObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(sanitizedResponse);
                 State = responseObject["gasValue"].ToString();
+
+                string insertQuery = "INSERT INTO gas_sensor_data (uuid, ppm) VALUES (@uuid, @ppm);";
+                var parameters = new Dictionary<string, object>
+                {
+                    { "uuid", UUId },
+                    { "ppm", State }
+                };
+                MySqlDatabaseService.Instance.ExecuteQueryAsync(insertQuery, parameters);
+
+                return responseData;
             }
             catch (Exception e)
             {
-                return null;
+                return string.Empty;
             }
-
-            string insertQuery = "INSERT INTO gas_sensor_data (uuid, ppm) VALUES (@uuid, @ppm);";
-            var parameters = new Dictionary<string, object>
-            {
-                { "uuid", UUId },
-                { "ppm", State }
-            };
-            MySqlDatabaseService.Instance.ExecuteQueryAsync(insertQuery, parameters);
-
-            return responseData;
         }
     }
 }

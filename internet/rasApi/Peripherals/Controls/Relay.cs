@@ -29,29 +29,31 @@ namespace RasberryAPI.Peripherals
             var endpoint = "http://" + Url + "/module/state?uuid=" + UUId;
 
             using HttpClient client = new HttpClient();
-            var response = client.GetAsync(endpoint).Result;
-            var responseData = response.Content.ReadAsStringAsync().Result;
+            client.Timeout = TimeSpan.FromSeconds(2);
+            
+            try
+            {
+                var response = client.GetAsync(endpoint).Result;
+                var responseData = response.Content.ReadAsStringAsync().Result;
 
-
-            try{
                 string sanitizedResponse = JsonConvert.DeserializeObject<string>(responseData) ?? string.Empty;
                 var responseObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(sanitizedResponse);
                 State = responseObject["isOn"].ToString();
+
+                string insertQuery = "INSERT INTO relay_state_data (uuid, state) VALUES (@uuid, @state);";
+                var parameters = new Dictionary<string, object>
+                {
+                    { "uuid", UUId },
+                    { "state", State == "False" ? 1 : 0 }
+                };
+                MySqlDatabaseService.Instance.ExecuteQueryAsync(insertQuery, parameters);
+
+                return responseData;
             }
             catch (Exception e)
             {
-                return null;
+                return string.Empty;
             }
-
-            string insertQuery = "INSERT INTO relay_state_data (uuid, state) VALUES (@uuid, @state);";
-            var parameters = new Dictionary<string, object>
-            {
-                { "uuid", UUId },
-                { "state", State == "False" ? 1 : 0 }
-            };
-            MySqlDatabaseService.Instance.ExecuteQueryAsync(insertQuery, parameters); 
-
-            return responseData;
         }
 
         public override void SetState(string state)
@@ -59,17 +61,23 @@ namespace RasberryAPI.Peripherals
             var endpoint = $"http://{Url}/module/state?uuid={UUId}";
 
             using HttpClient client = new HttpClient();
-
-            var stateDict = new Dictionary<string, string>
+            client.Timeout = TimeSpan.FromSeconds(2);
+            
+            try
             {
-                { "state", state }
-            };
-            var content = new StringContent(JsonConvert.SerializeObject(stateDict), Encoding.UTF8, "application/json");
+                var stateDict = new Dictionary<string, string>
+                {
+                    { "state", state }
+                };
+                var content = new StringContent(JsonConvert.SerializeObject(stateDict), Encoding.UTF8, "application/json");
 
-            var response = client.PostAsync(endpoint, content).Result;
-
-            State = response.Content.ReadAsStringAsync().Result;
-
+                var response = client.PostAsync(endpoint, content).Result;
+                State = response.Content.ReadAsStringAsync().Result;
+            }
+            catch (Exception e)
+            {
+                // Silently handle timeout or other errors
+            }
         }
 
 

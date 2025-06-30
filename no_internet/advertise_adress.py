@@ -9,8 +9,8 @@ import subprocess
 import time
 
 def wait_for_hotspot():
-    """Wait indefinitely until 'HotSpot' appears in the list of available connections."""
-    print("Waiting for 'HotSpot' to appear in available connections...")
+    """Wait indefinitely until 'Hotspot' appears in the list of available connections."""
+    print("Waiting for 'Hotspot' to appear in available connections...")
     while True:
         result = subprocess.run(
             ["nmcli", "-t", "-f", "NAME", "connection", "show"],
@@ -19,28 +19,28 @@ def wait_for_hotspot():
             text=True
         )
         connections = result.stdout.splitlines()
-        if "HotSpot" in connections:
-            print("'HotSpot' is now available.")
+        if "Hotspot" in connections:
+            print("'Hotspot' is now available.")
             return True
 
 def start_hotspot():
     """Start the Wi-Fi hotspot."""
     try:
-        print("Starting HotSpot...")
+        print("Starting Hotspot...")
         result = subprocess.run(
-            ["sudo", "nmcli", "connection", "up", "HotSpot"],
+            ["sudo", "nmcli", "connection", "up", "Hotspot"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
         )
         if result.returncode != 0:
-            print(f"Failed to start HotSpot: {result.stderr}")
+            print(f"Failed to start Hotspot: {result.stderr}")
             return False
 
-        print("HotSpot started successfully.")
+        print("Hotspot started successfully.")
         return True
     except Exception as e:
-        print(f"Error starting HotSpot: {e}")
+        print(f"Error starting Hotspot: {e}")
         return False
 
 def start_flask_server():
@@ -130,9 +130,9 @@ def display_message():
         url = f"http://{ip_address}:{port}"
 
         message = (
-            "Please connect to the \"Input Wifi Here\" hotspot.\n"
-            f"Then open your browser and navigate to:\n\n{url}\n\n"
-            " or scand the QR Code to input your Wi-Fi credentials.\n"
+            "Vă rugăm să vă conectați la hotspot-ul \"Input Wifi Here\".\n"
+            f"Apoi deschideți browser-ul și navigați la:\n\n{url}\n\n"
+            " sau scanați codul QR pentru a introduce acreditările Wi-Fi.\n"
         )
         # Remove the loading animation and update the instructions
         loading_label.pack_forget()
